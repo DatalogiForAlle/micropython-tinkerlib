@@ -2,11 +2,9 @@ import machine
 import time
 
 # TODO
-#  - servo
-#  - soil moisture sensor
+#  - Servo
 #  - OLED display
 #  - mikrofon
-#  - partikel-sensor
 #  - pulsmåler
 
 
@@ -122,7 +120,7 @@ class ADKeypad():
                       callback=self.button_check)
 
     def voltage_to_key(self, v):
-        thresholds = [10, 20, 70, 150, 600]
+        thresholds = [4, 20, 70, 150, 600]
         for i in range(len(thresholds)):
             if v < thresholds[i]:
                 return i
