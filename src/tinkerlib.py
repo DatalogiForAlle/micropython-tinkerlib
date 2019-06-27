@@ -30,8 +30,43 @@ class Potentiometer():
         self.adc.width(machine.ADC.WIDTH_10BIT)
         self.adc.atten(machine.ADC.ATTN_11DB)
 
-    def value(self):
+    def read(self):
         return self.adc.read()
+
+class DustSensor():
+    """ """
+    def __init__(self, pin, sampletime_ms=30000):
+        self.pin = pin
+        self.sampletime_ms = sampletime_ms
+
+    # Waits for the pin to turn LOW/HIGH, depending on the value argument
+    # and measures how long time it has that value.
+    def _pulseInTimeout(self, pin, value, endTime):
+        # Wait till we hit the wanted value
+        while pin.value() != value:
+            if(time.ticks_ms() > endTime):
+                return 0
+        # Start timing
+        start = time.ticks_us()
+        # Wait till we are no longer == value (or time passes)
+        while pin.value() == value and time.ticks_ms() < endTime:
+            pass
+        now = time.ticks_us()
+        tdiff = time.ticks_diff(now, start)
+        return tdiff
+
+    def read(self):
+        starttime_ms = time.ticks_ms()
+        endTime = starttime_ms + self.sampletime_ms
+        lowpulseoccupancy_us = 0
+        while time.ticks_ms() < endTime:
+            duration_us = self._pulseInTimeout(self.pin, 0, endTime)
+            lowpulseoccupancy_us = lowpulseoccupancy_us+duration_us
+        # Integer percentage 0%-100%
+        ratio = lowpulseoccupancy_us/(self.sampletime_ms*10.0)
+        # Using spec sheet curve
+        concentration = 1.1*pow(ratio, 3)-3.8*pow(ratio, 2)+520*ratio+0.62
+        return concentration
 
 class PIRSensor():
     """Passive InfraRed (PIR) sensor - detects motion"""

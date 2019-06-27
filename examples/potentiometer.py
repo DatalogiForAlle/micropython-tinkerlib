@@ -1,10 +1,11 @@
 import machine
-import machine
 import time
-from tinkerlib import Potentiometer
+import tinkerlib
 
 # Example code for Potentiometer
-pot = Potentiometer(machine.Pin(32, mode=machine.Pin.IN))
+pin32 = machine.Pin(32, mode=machine.Pin.IN)
+pot = tinkerlib.Potentiometer(pin32)
+
 for i in range(100):
-    print(pot.value())
+    print(pot.read())
     time.sleep_ms(200)
