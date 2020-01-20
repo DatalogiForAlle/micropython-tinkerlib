@@ -1,8 +1,13 @@
 import machine
 import time
-from tinkerlib import Buzzer
+import tinkerlib
 
-buzzer = Buzzer(machine.Pin(16))
+# Connections:
+#  - G to GND (Ground)
+#  - V to 3V3 (3.3V)
+#  - S to pin 16
+
+buzzer = tinkerlib.Buzzer(machine.Pin(16))
 quarter_note = 100
 
 buzzer.tone(2637, quarter_note)

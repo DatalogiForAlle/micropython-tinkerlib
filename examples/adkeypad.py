@@ -1,9 +1,13 @@
 import machine
-import time
-from tinkerlib import ADKeypad
+import tinkerlib
 
-def on_button_down(x):
-    print(x)
+# Connections:
+#  - G to GND (Ground)
+#  - V to 3V3 (3.3V)
+#  - S to pin 32 (only works on pin 32, 33, 36, 37, 38, 39)
 
-adkey = ADKeypad(machine.Pin(32, mode=machine.Pin.IN),
-                 button_down=on_button_down)
+def onButtonDown(key):
+    print(key)
+
+pin32 = machine.Pin(32, mode=machine.Pin.IN)
+adkey = tinkerlib.ADKeypad(pin32, button_down=onButtonDown)

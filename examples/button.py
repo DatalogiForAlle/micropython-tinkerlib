@@ -1,12 +1,19 @@
 import machine
-import time
-from tinkerlib import Button
+import tinkerlib
 
-def on_button_down():
+# Connections:
+#  - G to GND (Ground)
+#  - V to 3V3 (3.3V)
+#  - S to pin 16
+
+def onButtonDown():
     print("Down")
-def on_button_up():
+
+def onButtonUp():
     print("Up")
 
-button = Button(machine.Pin(16, mode=machine.Pin.IN),
-                button_down=on_button_down,
-                button_up=on_button_up)
+pin16 = machine.Pin(16, mode=machine.Pin.IN)
+    
+button = tinkerlib.Button(pin16,
+                          button_down=onButtonDown,
+                          button_up=onButtonUp)

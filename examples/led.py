@@ -1,8 +1,13 @@
 import machine
 import time
-from tinkerlib import LED
+import tinkerlib
 
-led = LED(machine.Pin(16, machine.Pin.OUT))
+# Connections:
+#  - G to GND (Ground)
+#  - V to 3V3 (3.3V)
+#  - S to pin 16
+
+led = tinkerlib.LED(machine.Pin(16, machine.Pin.OUT))
 
 for i in range(10):
     led.on()
