@@ -255,10 +255,11 @@ class ComplimentaryFilter:
     def __init__(self, has_magnetometer=False):
         self.pitch = 0
         self.roll = 0
+        self.yaw = 0
         self.has_magnetometer = has_magnetometer
         self.weight = 0.02
 
-    def process(self, dt, acceleration, gyro):
+    def process(self, dt, acceleration, gyro, magnetometer=[0,0,0]):
         """
         dt: Time since last call to process in milliseconds
         """
@@ -269,6 +270,9 @@ class ComplimentaryFilter:
         gyro_x = gyro[0]
         gyro_y = gyro[1]
         gyro_z = gyro[2]
+        mag_x = magnetometer[0]
+        mag_y = magnetometer[1]
+        mag_z = magnetometer[2]
         w = self.weight
         roll_acc = math.atan2(acc_y, acc_z)*RADIANS_TO_DEGREES
         roll_gyro = (gyro_x / GYROSCOPE_SENSITIVITY) * dt + self.roll
@@ -276,4 +280,26 @@ class ComplimentaryFilter:
         pitch_acc = math.atan2(acc_x, math.sqrt(pow(acc_y, 2) + pow(acc_z, 2))) * RADIANS_TO_DEGREES
         pitch_gyro = (gyro_y / GYROSCOPE_SENSITIVITY) * dt + self.pitch
         self.pitch = (1-w) * pitch_gyro + w * pitch_acc
-        return (self.pitch, self.roll)
+
+        if self.has_magnetometer:
+            # Normalize accelerometer raw values
+            l = math.sqrt(pow(acc_x, 2) + pow(acc_y, 2) + pow(acc_z, 2))
+            accXnorm = acc_x / l
+            accYnorm = acc_y / l
+
+            # Calculate pitch and roll for compensated yaw
+            magPitch = math.asin(accXnorm)
+            magRoll = -math.asin(accYnorm / math.cos(magPitch))
+
+            # Calculate the new tilt compensated values
+            magXcomp = mag_x * math.cos(magPitch) + mag_z * math.sin(magPitch)
+            magYcomp = (mag_x * math.sin(magRoll) * math.sin(magPitch)
+                        + mag_y * math.cos(magRoll)
+                        - mag_z * math.sin(magRoll) * math.cos(magPitch))
+
+            # Calculate tilt compensated heading
+            self.yaw = math.atan2(magYcomp, magXcomp) * RADIANS_TO_DEGREES;
+            if self.yaw < 0:
+                self.yaw += 360
+
+        return (self.pitch, self.roll, self.yaw)
