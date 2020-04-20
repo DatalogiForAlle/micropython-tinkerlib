@@ -1,6 +1,7 @@
 import machine
 import math
 import time
+import neopixel
 
 
 class LED:
@@ -221,3 +222,52 @@ class Servo:
         total_range = self.max_us - self.min_us
         us = self.min_us + total_range * degrees // self.angle
         self.write_us(us)
+
+class LEDStrip(neopixel.NeoPixel):
+    def __init__(self, pin, n, bpp=3, timing=1):
+        neopixel.NeoPixel.__init__(self, pin, n, bpp, timing)
+
+    def __len__(self):
+        return self.n
+
+    def __str__(self):
+        return str([self[i] for i in range(self.n)])
+
+    def fillN(self, color, n):
+        for i in range(n):
+            self[i] = color
+        self.write()
+
+    def clear(self):
+        self.fillN((0, 0, 0), len(self))
+
+GYROSCOPE_SENSITIVITY = 65.536
+RADIANS_TO_DEGREES = 57.2958
+class ComplimentaryFilter:
+    def __init__(self, has_magnetometer=False):
+        self.pitch = 0
+        self.roll = 0
+        self.has_magnetometer = has_magnetometer
+        self.weight = 0.02
+
+    def process(self, dt, acceleration, gyro):
+        """
+        dt: Time since last call to process in milliseconds
+        """
+        dt = dt / 1000
+        acc_x = acceleration[0]
+        acc_y = acceleration[1]
+        acc_z = acceleration[2]
+        gyro_x = gyro[0]
+        gyro_y = gyro[1]
+        gyro_z = gyro[2]
+        w = self.weight
+        roll_acc = math.atan2(acc_y, acc_z)*RADIANS_TO_DEGREES
+        roll_gyro = (gyro_x / GYROSCOPE_SENSITIVITY) * dt + self.roll
+        self.roll = roll_acc * w + (1-w) * roll_gyro
+        pitch_acc = math.atan2(acc_x, math.sqrt(pow(acc_y, 2) + pow(acc_z, 2))) * RADIANS_TO_DEGREES
+        pitch_gyro = (gyro_y / GYROSCOPE_SENSITIVITY) * dt + self.pitch
+        self.pitch = (1-w) * pitch_gyro + w * pitch_acc
+        return (self.pitch, self.roll)
+
+
