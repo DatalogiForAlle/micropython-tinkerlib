@@ -263,9 +263,9 @@ class ComplimentaryFilter:
         """
         dt: Time since last call to process in milliseconds
         Returns:
-          Pitch: -180 - 180 degrees
-          Roll: -180 - 180 degrees
-          Yaw between 0 - 360 degrees
+          Pitch: -90 to 90 degrees
+          Roll: -180 to 180 degrees
+          Yaw: 0 to 360 degrees
         """
         dt = dt / 1000
         acc_x = acceleration[0]
@@ -281,7 +281,7 @@ class ComplimentaryFilter:
         roll_acc = math.atan2(acc_y, acc_z)*RADIANS_TO_DEGREES
         roll_gyro = (gyro_x / GYROSCOPE_SENSITIVITY) * dt + self.roll
         self.roll = roll_acc * w + (1-w) * roll_gyro
-        pitch_acc = math.atan2(acc_x, acc_z)*RADIANS_TO_DEGREES
+        pitch_acc = math.atan2(acc_x, math.sqrt(pow(acc_y, 2) + pow(acc_z, 2))) * RADIANS_TO_DEGREES
         pitch_gyro = (gyro_y / GYROSCOPE_SENSITIVITY) * dt + self.pitch
         self.pitch = (1-w) * pitch_gyro + w * pitch_acc
 
