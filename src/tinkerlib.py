@@ -16,6 +16,7 @@ class LED:
     def off(self):
         self.pin.value(0)
 
+
 class Potentiometer():
     """ ESP32: ports 32-39, ESP8266: ADC(0)"""
     def __init__(self, pin):
@@ -88,6 +89,7 @@ class DustSensor():
         concentration = 1.1*pow(ratio, 3)-3.8*pow(ratio, 2)+520*ratio+0.62
         return concentration
 
+
 class PIRSensor():
     """Passive InfraRed (PIR) sensor - detects motion"""
     def __init__(self, pin, callback):
@@ -103,6 +105,7 @@ class PIRSensor():
 
     def value(self):
         return self.pin.value()
+
 
 class Button():
     """TinkerKit Crash Sensor / button"""
@@ -125,6 +128,7 @@ class Button():
             self.button_down()
         self.state = new_state
         machine.enable_irq(irq_state)
+
 
 class ADKeypad():
     """5 button keypad"""
@@ -162,6 +166,7 @@ class ADKeypad():
                     self.button_down(new_state)
         self.button_last_state = new_state
 
+
 class Buzzer:
     def __init__(self, pin, dutycycle_in_percent=False):
         self.pin = pin
@@ -182,6 +187,7 @@ class Buzzer:
 
     def noTone(self):
         self.pwm.deinit()
+
 
 ## Servo class from https://bitbucket.org/thesheep/micropython-servo/
 ## MIT Licensed, written by Radomir Dopieralski
@@ -223,6 +229,7 @@ class Servo:
         us = self.min_us + total_range * degrees // self.angle
         self.write_us(us)
 
+
 class LEDStrip(neopixel.NeoPixel):
     def __init__(self, pin, n, bpp=3, timing=1):
         neopixel.NeoPixel.__init__(self, pin, n, bpp, timing)
@@ -240,6 +247,7 @@ class LEDStrip(neopixel.NeoPixel):
 
     def clear(self):
         self.fillN((0, 0, 0), len(self))
+
 
 GYROSCOPE_SENSITIVITY = 65.536
 RADIANS_TO_DEGREES = 57.2958
@@ -269,5 +277,3 @@ class ComplimentaryFilter:
         pitch_gyro = (gyro_y / GYROSCOPE_SENSITIVITY) * dt + self.pitch
         self.pitch = (1-w) * pitch_gyro + w * pitch_acc
         return (self.pitch, self.roll)
-
-
