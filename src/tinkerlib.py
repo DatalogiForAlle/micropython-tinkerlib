@@ -2,8 +2,38 @@ import machine
 import math
 import time
 import neopixel
+import uasyncio as asyncio
 
+# Small event system built on top of asyncio
 
+class Tasks():
+    tasks = set()
+
+def schedule(coroutine):
+    Tasks.tasks.add(coroutine)
+    loop = asyncio.get_event_loop()
+    loop.create_task(coroutine)
+
+async def repeater(f, frequency=60):
+    waittime = 1/frequency
+    while True:
+        f()
+        await asyncio.sleep(waittime)
+
+def repeat(f, frequency=60):
+    schedule(repeater(f,frequency=frequency))
+
+def initialize():
+    # Shutdown existing tasks
+    for task in Tasks.tasks:
+        task.close()
+        Tasks.tasks.remove(task)
+
+def run():
+    loop = asyncio.get_event_loop()
+    loop.run_forever()
+
+# Simple device drivers
 class LED:
     def __init__(self, pin):
         self.pin = pin
@@ -91,23 +121,31 @@ class DustSensor():
 
 
 class PIRSensor():
+    update_frequency = 10 # 10 Hz
     """Passive InfraRed (PIR) sensor - detects motion"""
     def __init__(self, pin, callback):
         self.pin = pin
         self.callback = callback
         self.pin.irq(handler=self.on_rising,
                      trigger=machine.Pin.IRQ_RISING)
+        self.rising_flag = False
+        repeat(self.check_rising, frequency=PIRSensor.update_frequency)
+
+    def check_rising(self):
+        if self.rising_flag:
+            self.rising_flag = False
+            self.callback()
 
     def on_rising(self, pin):
-        irq_state = machine.disable_irq()
-        self.callback()
-        machine.enable_irq(irq_state)
+        self.rising_flag = True
 
     def value(self):
         return self.pin.value()
 
 
 class Button():
+    update_frequency = 10 # 10 Hz
+
     """TinkerKit Crash Sensor / button"""
     def __init__(self, pin, button_down, button_up=None):
         self.pin = pin
@@ -117,22 +155,28 @@ class Button():
         self.state = self.pin.value()
         self.pin.irq(handler=self.on_change,
                      trigger=machine.Pin.IRQ_RISING | machine.Pin.IRQ_FALLING)
+        self.button_change_flag = False
+        repeat(self.button_check, frequency=Button.update_frequency)
+
+    def button_check(self):
+        if self.button_change_flag:
+            self.button_change_flag = False
+            new_state = self.pin.value()
+            if self.state == 0 and new_state == 1:
+                if self.button_up:
+                    self.button_up()
+            elif self.state == 1 and new_state == 0:
+                self.button_down()
+            self.state = new_state
 
     def on_change(self, pin):
-        irq_state = machine.disable_irq()
-        new_state = pin.value()
-        if self.state == 0 and new_state == 1:
-            if self.button_up:
-                self.button_up()
-        elif self.state == 1 and new_state == 0:
-            self.button_down()
-        self.state = new_state
-        machine.enable_irq(irq_state)
+        self.button_change_flag = True
 
 
 class ADKeypad():
+    update_frequency = 60 # 60 Hz
     """5 button keypad"""
-    def __init__(self, pin, button_down=None, button_up=None, timer=3):
+    def __init__(self, pin, button_down=None, button_up=None):
         self.pin = pin
         self.adc = machine.ADC(self.pin)
         self.adc.width(machine.ADC.WIDTH_10BIT)
@@ -140,10 +184,7 @@ class ADKeypad():
         self.button_down = button_down
         self.button_up = button_up
         self.button_last_state = self.button_state()
-        self.tim = machine.Timer(timer)
-        self.tim.init(period=20,
-                      mode=machine.Timer.PERIODIC,
-                      callback=self.button_check)
+        repeat(self.button_check, frequency=ADKeypad.update_frequency)
 
     def voltage_to_key(self, v):
         thresholds = [4, 20, 70, 150, 600]
@@ -155,7 +196,7 @@ class ADKeypad():
     def button_state(self):
         return self.voltage_to_key(self.adc.read())
 
-    def button_check(self, t):
+    def button_check(self):
         new_state = self.button_state()
         if self.button_last_state != new_state:
             if new_state is None:
