@@ -251,7 +251,7 @@ class LEDStrip(neopixel.NeoPixel):
 
 GYROSCOPE_SENSITIVITY = 65.536
 RADIANS_TO_DEGREES = 57.2958
-class ComplimentaryFilter:
+class ComplementaryFilter:
     def __init__(self, has_magnetometer=False):
         self.pitch = 0
         self.roll = 0
