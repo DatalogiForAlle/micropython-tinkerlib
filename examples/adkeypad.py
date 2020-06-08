@@ -6,8 +6,10 @@ import tinkerlib
 #  - V to 3V3 (3.3V)
 #  - S to pin 32 (only works on pin 32, 33, 36, 37, 38, 39)
 
-def onButtonDown(key):
+def on_button_down(key):
     print(key)
 
 pin32 = machine.Pin(32, mode=machine.Pin.IN)
-adkey = tinkerlib.ADKeypad(pin32, button_down=onButtonDown)
+tinkerlib.initialize()
+adkey = tinkerlib.ADKeypad(pin32, button_down=on_button_down)
+tinkerlib.run()
