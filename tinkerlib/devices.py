@@ -1,51 +1,10 @@
 import machine
 import math
-import time
 import neopixel
-import uasyncio as asyncio
-
-# Small event system built on top of asyncio
-
-class Tasks():
-    tasks = set()
-
-def schedule(coroutine):
-    Tasks.tasks.add(coroutine)
-    loop = asyncio.get_event_loop()
-    loop.create_task(coroutine)
-
-async def repeater(f, frequency=60):
-    waittime = 1/frequency
-    while True:
-        f()
-        await asyncio.sleep(waittime)
-
-def repeat(f, frequency=60):
-    schedule(repeater(f,frequency=frequency))
-
-def initialize():
-    # Shutdown existing tasks
-    for task in Tasks.tasks:
-        task.close()
-        Tasks.tasks.remove(task)
-
-def run():
-    loop = asyncio.get_event_loop()
-    loop.run_forever()
-
-# Simple device drivers
-class LED:
-    def __init__(self, pin):
-        self.pin = pin
-        # Mode function not available on ESP boards
-        # self.pin.mode(machine.Pin.OUT)
-
-    def on(self):
-        self.pin.value(1)
-
-    def off(self):
-        self.pin.value(0)
-
+import time
+from tinkerlib.base import repeat, schedule
+import tinkerlib.contrib.lsm9ds1
+from tinkerlib.contrib.fusion import Fusion
 
 class Potentiometer():
     """ ESP32: ports 32-39, ESP8266: ADC(0)"""
@@ -207,14 +166,26 @@ class ADKeypad():
                     self.button_down(new_state)
         self.button_last_state = new_state
 
+class LED:
+    def __init__(self, pin):
+        self.pin = pin
+        # Mode function not available on ESP boards
+        # self.pin.mode(machine.Pin.OUT)
+
+    def on(self):
+        self.pin.value(1)
+
+    def off(self):
+        self.pin.value(0)
 
 class Buzzer:
     def __init__(self, pin, dutycycle_in_percent=False):
         self.pin = pin
-        self.pwm = machine.PWM(self.pin)
+        self.pwm = machine.PWM(self.pin, freq=0, duty=0)
+        self.noTone()
         self.dutycycle_in_percent=dutycycle_in_percent
 
-    def tone(self, frequency, duration=None, dutycycle=50):
+    def enable(self, frequency, dutycycle=50):
         if frequency != 0:
             self.pwm.init()
             self.pwm.freq(frequency)
@@ -222,13 +193,18 @@ class Buzzer:
                 self.pwm.duty(dutycycle)
             else:
                 self.pwm.duty(int(1023*dutycycle/100))
+
+    def tone(self, frequency, duration=None, dutycycle=50):
+        def task():
+            self.enable(frequency, dutycycle)
+        schedule(task)
         if duration != None:
-            time.sleep_ms(duration)
-            self.pwm.deinit()
+            schedule(self.noTone, delay=duration)
+            # time.sleep_ms(duration)
+            # self.pwm.deinit()
 
     def noTone(self):
         self.pwm.deinit()
-
 
 ## Servo class from https://bitbucket.org/thesheep/micropython-servo/
 ## MIT Licensed, written by Radomir Dopieralski
@@ -289,62 +265,22 @@ class LEDStrip(neopixel.NeoPixel):
     def clear(self):
         self.fillN((0, 0, 0), len(self))
 
-
-GYROSCOPE_SENSITIVITY = 65.536
-RADIANS_TO_DEGREES = 57.2958
-class ComplimentaryFilter:
-    def __init__(self, has_magnetometer=False):
+class LSM9DS1:
+    update_frequency = 10
+    def __init__(self, scl, sda):
+        self.i2c = machine.I2C(-1, scl, sda)
+        self.lsm = tinkerlib.contrib.lsm9ds1.LSM9DS1(self.i2c)
+        self.filter = Fusion()
         self.pitch = 0
         self.roll = 0
         self.yaw = 0
-        self.has_magnetometer = has_magnetometer
-        self.weight = 0.02
+        repeat(self.update, frequency=LSM9DS1.update_frequency)
 
-    def process(self, dt, acceleration, gyro, magnetometer=[0,0,0]):
-        """
-        dt: Time since last call to process in milliseconds
-        Returns:
-          Pitch: -90 to 90 degrees
-          Roll: -180 to 180 degrees
-          Yaw: 0 to 360 degrees
-        """
-        dt = dt / 1000
-        acc_x = acceleration[0]
-        acc_y = acceleration[1]
-        acc_z = acceleration[2]
-        gyro_x = gyro[0]
-        gyro_y = gyro[1]
-        gyro_z = gyro[2]
-        mag_x = magnetometer[0]
-        mag_y = magnetometer[1]
-        mag_z = magnetometer[2]
-        w = self.weight
-        roll_acc = math.atan2(acc_y, acc_z)*RADIANS_TO_DEGREES
-        roll_gyro = (gyro_x / GYROSCOPE_SENSITIVITY) * dt + self.roll
-        self.roll = roll_acc * w + (1-w) * roll_gyro
-        pitch_acc = math.atan2(acc_x, math.sqrt(pow(acc_y, 2) + pow(acc_z, 2))) * RADIANS_TO_DEGREES
-        pitch_gyro = (gyro_y / GYROSCOPE_SENSITIVITY) * dt + self.pitch
-        self.pitch = (1-w) * pitch_gyro + w * pitch_acc
-
-        if self.has_magnetometer:
-            # Normalize accelerometer raw values
-            l = math.sqrt(pow(acc_x, 2) + pow(acc_y, 2) + pow(acc_z, 2))
-            accXnorm = acc_x / l
-            accYnorm = acc_y / l
-
-            # Calculate pitch and roll for compensated yaw
-            magPitch = math.asin(accXnorm)
-            magRoll = -math.asin(accYnorm / math.cos(magPitch))
-
-            # Calculate the new tilt compensated values
-            magXcomp = mag_x * math.cos(magPitch) + mag_z * math.sin(magPitch)
-            magYcomp = (mag_x * math.sin(magRoll) * math.sin(magPitch)
-                        + mag_y * math.cos(magRoll)
-                        - mag_z * math.sin(magRoll) * math.cos(magPitch))
-
-            # Calculate tilt compensated heading
-            self.yaw = math.atan2(magYcomp, magXcomp) * RADIANS_TO_DEGREES;
-            if self.yaw < 0:
-                self.yaw += 360
-
-        return (self.pitch, self.roll, self.yaw)
+    def update(self):
+        self.accel = self.lsm.read_accel()
+        self.gyro = self.lsm.read_gyro()
+        self.magnet = self.lsm.read_magnet()
+        self.filter.update(self.accel, self.gyro, self.magnet)
+        self.pitch = self.filter.pitch
+        self.roll = self.filter.roll
+        self.yaw = self.filter.heading

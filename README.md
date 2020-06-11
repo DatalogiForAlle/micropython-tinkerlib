@@ -1,6 +1,4 @@
-Small MicroPython library of easy interfaces to various
-sensors/actuators for use in teaching.
-
-Initially the plan is to support all components of Elecfreaks
-Tinker:kit
-https://www.elecfreaks.com/estore/elecfreaks-micro-bit-tinker-kit.html
+Packaging intending to make MicroPython easy to use in education. That
+is, provide easy to use event-driven interfaces for various sensors,
+actuators, and wrap some of networking libraries (WiFi, bluetooth) in
+an easier form for teachers and students.
