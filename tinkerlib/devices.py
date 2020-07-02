@@ -4,7 +4,7 @@ import neopixel
 import time
 from tinkerlib.base import repeat, schedule
 import tinkerlib.contrib.lsm9ds1
-from tinkerlib.contrib.fusion import Fusion
+from tinkerlib.contrib.mahony import Mahony
 
 class Potentiometer():
     """ ESP32: ports 32-39, ESP8266: ADC(0)"""
@@ -266,21 +266,29 @@ class LEDStrip(neopixel.NeoPixel):
         self.fillN((0, 0, 0), len(self))
 
 class LSM9DS1:
-    update_frequency = 10
+    update_frequency = 165
+
     def __init__(self, scl, sda):
         self.i2c = machine.I2C(-1, scl, sda)
         self.lsm = tinkerlib.contrib.lsm9ds1.LSM9DS1(self.i2c)
-        self.filter = Fusion()
+        self.fusion_filter = Mahony()
         self.pitch = 0
         self.roll = 0
         self.yaw = 0
-        repeat(self.update, frequency=LSM9DS1.update_frequency)
 
+        # Call update function very often
+        repeat(self.update, frequency=LSM9DS1.update_frequency)
+        # Update the angles less regularly
+        repeat(self.update_angles, frequency=20)
+
+    def update_angles(self):
+        self.fusion_filter.compute_angles()
+        self.pitch = self.fusion_filter.pitch
+        self.roll = self.fusion_filter.roll
+        self.yaw = self.fusion_filter.heading
+        
     def update(self):
         self.accel = self.lsm.read_accel()
         self.gyro = self.lsm.read_gyro()
         self.magnet = self.lsm.read_magnet()
-        self.filter.update(self.accel, self.gyro, self.magnet)
-        self.pitch = self.filter.pitch
-        self.roll = self.filter.roll
-        self.yaw = self.filter.heading
+        self.fusion_filter.update(self.accel, self.gyro, self.magnet)
