@@ -13,13 +13,21 @@ def execute(coroutine):
     loop.create_task(coroutine)
 
 
-def repeat(f, frequency=60):
-    async def repeater(f, frequency=60):
-        waittime = 1/frequency
+def repeat_every(f, waittime=1):
+    """
+    Repeat everytime a certain amount of seconds have passed as given
+    by the variable waittime. Defaults to repeating every second.
+
+    """
+    async def repeater(f, waittime):
         while True:
             f()
-            await uasyncio.sleep(waittime)
-    execute(repeater(f, frequency=frequency))
+            await uasyncio.sleep(int(waittime))
+    execute(repeater(f, waittime))
+
+
+def repeat(f, frequency=60):
+    repeat_every(f, waittime=1/frequency)
 
 
 def schedule(f, delay=0):
