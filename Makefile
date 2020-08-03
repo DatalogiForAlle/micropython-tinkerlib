@@ -9,3 +9,5 @@ deploy: remove
 remove:
 	-ampy --port $(DEVICE_PORT) rmdir tinkerlib/ --missing-okay
 
+check:
+	flake8 --exclude tinkerlib/contrib

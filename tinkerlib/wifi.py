@@ -1,6 +1,7 @@
 import time
 import network
 
+
 # Connect to a specific wifi network
 def connect(essid, password, timeout=30000):
     wifi = network.WLAN(network.STA_IF)
@@ -21,13 +22,16 @@ def connect(essid, password, timeout=30000):
         print("Already connected")
         return True
 
+
 def disconnect():
     wifi = network.WLAN(network.STA_IF)
     wifi.disconnect()
 
+
 def isconnected():
     wifi = network.WLAN(network.STA_IF)
     return wifi.isconnected()
+
 
 def ipaddress():
     wifi = network.WLAN(network.STA_IF)

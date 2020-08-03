@@ -6,6 +6,7 @@ from tinkerlib.base import repeat, schedule
 import tinkerlib.contrib.lsm9ds1
 from tinkerlib.contrib.mahony import Mahony
 
+
 class Potentiometer():
     """ ESP32: ports 32-39, ESP8266: ADC(0)"""
     def __init__(self, pin):
@@ -32,6 +33,7 @@ class Microphone():
         peakToPeak = 0
         signalMax = 0
         signalMin = 1024
+        sampleWindow = 50
 
         while time.ticks_ms() - startMillis < sampleWindow:
             sample = self.adc.read()
@@ -80,8 +82,10 @@ class DustSensor():
 
 
 class PIRSensor():
-    update_frequency = 10 # 10 Hz
     """Passive InfraRed (PIR) sensor - detects motion"""
+
+    update_frequency = 10  # 10 Hz
+
     def __init__(self, pin, callback):
         self.pin = pin
         self.callback = callback
@@ -103,9 +107,10 @@ class PIRSensor():
 
 
 class Button():
-    update_frequency = 10 # 10 Hz
-
     """TinkerKit Crash Sensor / button"""
+
+    update_frequency = 10  # 10 Hz
+
     def __init__(self, pin, button_down, button_up=None):
         self.pin = pin
         self.pin.init(pull=machine.Pin.PULL_UP)
@@ -133,8 +138,10 @@ class Button():
 
 
 class ADKeypad():
-    update_frequency = 60 # 60 Hz
     """5 button keypad"""
+
+    update_frequency = 60  # 60 Hz
+
     def __init__(self, pin, button_down=None, button_up=None):
         self.pin = pin
         self.adc = machine.ADC(self.pin)
@@ -166,6 +173,7 @@ class ADKeypad():
                     self.button_down(new_state)
         self.button_last_state = new_state
 
+
 class LED:
     def __init__(self, pin):
         self.pin = pin
@@ -178,12 +186,13 @@ class LED:
     def off(self):
         self.pin.value(0)
 
+
 class Buzzer:
     def __init__(self, pin, dutycycle_in_percent=False):
         self.pin = pin
         self.pwm = machine.PWM(self.pin, freq=0, duty=0)
         self.noTone()
-        self.dutycycle_in_percent=dutycycle_in_percent
+        self.dutycycle_in_percent = dutycycle_in_percent
 
     def enable(self, frequency, dutycycle=50):
         if frequency != 0:
@@ -198,7 +207,7 @@ class Buzzer:
         def task():
             self.enable(frequency, dutycycle)
         schedule(task)
-        if duration != None:
+        if duration is not None:
             schedule(self.noTone, delay=duration)
             # time.sleep_ms(duration)
             # self.pwm.deinit()
@@ -206,8 +215,9 @@ class Buzzer:
     def noTone(self):
         self.pwm.deinit()
 
-## Servo class from https://bitbucket.org/thesheep/micropython-servo/
-## MIT Licensed, written by Radomir Dopieralski
+
+# Servo class from https://bitbucket.org/thesheep/micropython-servo/
+# MIT Licensed, written by Radomir Dopieralski
 class Servo:
     """
     A simple class for controlling hobby servos.
@@ -265,6 +275,7 @@ class LEDStrip(neopixel.NeoPixel):
     def clear(self):
         self.fillN((0, 0, 0), len(self))
 
+
 class LSM9DS1:
     update_frequency = 165
 
@@ -286,7 +297,7 @@ class LSM9DS1:
         self.pitch = self.fusion_filter.pitch
         self.roll = self.fusion_filter.roll
         self.yaw = self.fusion_filter.heading
-        
+
     def update(self):
         self.accel = self.lsm.read_accel()
         self.gyro = self.lsm.read_gyro()
