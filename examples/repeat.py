@@ -17,7 +17,11 @@ def toggle_led():
 def main():
     print("Hello world")
 
+def infrequent():
+    print("PING")
+    
 tinkerlib.initialize()
 tinkerlib.repeat(main, 1)   # 1 Hz
 tinkerlib.repeat(toggle_led, 20) # 20 Hz, 20 LED toggles per second
+tinkerlib.repeat(infrequent, 1.0/60.0) # Once every minute
 tinkerlib.run()
