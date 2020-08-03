@@ -22,7 +22,7 @@ def repeat_every(f, waittime=1):
     async def repeater(f, waittime):
         while True:
             f()
-            await uasyncio.sleep(int(waittime))
+            await uasyncio.sleep(waittime)
     execute(repeater(f, waittime))
 
 

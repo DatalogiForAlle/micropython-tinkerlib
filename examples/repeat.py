@@ -18,10 +18,10 @@ def main():
     print("Hello world")
 
 def infrequent():
-    print("PING")
-    
+    print("The quick brown fox jumps over the lazy dog")
+
 tinkerlib.initialize()
 tinkerlib.repeat(main, 1)   # 1 Hz
-tinkerlib.repeat(toggle_led, 20) # 20 Hz, 20 LED toggles per second
-tinkerlib.repeat(infrequent, 1.0/60.0) # Once every minute
+tinkerlib.repeat(toggle_led, 20) # 20 Hz (20 toggles, 10 blinks per second)
+tinkerlib.repeat_every(infrequent, 60) # every 60 seconds (every minute)
 tinkerlib.run()
