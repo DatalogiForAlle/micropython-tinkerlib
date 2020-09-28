@@ -6,7 +6,7 @@ class Tasks():
     tasks = set()
 
 
-def execute(coroutine):
+def _execute_coroutine(coroutine):
     """ Execute a coroutine immediately """
     loop = uasyncio.get_event_loop()
     Tasks.tasks.add(coroutine)
@@ -23,19 +23,20 @@ def repeat_every(f, waittime=1):
         while True:
             f()
             await uasyncio.sleep(waittime)
-    execute(repeater(f, waittime))
+    _execute_coroutine(repeater(f, waittime))
 
 
 def repeat(f, frequency=60):
     repeat_every(f, waittime=1/frequency)
 
 
-def schedule(f, delay=0):
+def execute(f, delay=0, times=1):
     # Wrap task to allow us to delay it
     async def delayed_execute():
-        await uasyncio.sleep_ms(delay)
-        f()
-    execute(delayed_execute())
+        for i in range(times):
+            await uasyncio.sleep_ms(delay)
+            f()
+    _execute_coroutine(delayed_execute())
 
 
 def initialize():

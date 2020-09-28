@@ -2,7 +2,7 @@ import machine
 import math
 import neopixel
 import time
-from tinkerlib.base import repeat, schedule
+from tinkerlib.base import repeat, execute
 import tinkerlib.contrib.lsm9ds1
 from tinkerlib.contrib.mahony import Mahony
 
@@ -206,9 +206,9 @@ class Buzzer:
     def tone(self, frequency, duration=None, dutycycle=50):
         def task():
             self.enable(frequency, dutycycle)
-        schedule(task)
+        execute(task)
         if duration is not None:
-            schedule(self.noTone, delay=duration)
+            execute(self.noTone, delay=duration)
             # time.sleep_ms(duration)
             # self.pwm.deinit()
 
